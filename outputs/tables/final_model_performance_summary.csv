@@ -1,0 +1,7 @@
+"Model","Metric","Value"
+"Cox Proportional Hazards","C-index",0.646
+"Random Forest","AUC",0.546
+"Logistic Regression (L1)","AUC",0.571
+"XGBoost","AUC",0.557
+"Random Survival Forest (RSF)","C-index",0.74
+"Penalized Cox (CoxNet)","C-index",0.639

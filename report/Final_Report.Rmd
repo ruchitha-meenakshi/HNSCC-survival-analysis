@@ -1,0 +1,177 @@
+---
+title: "Predicting Overall Survival in Head and Neck Squamous Cell Carcinoma"
+author: "Ruchitha Uppuluri"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    keep_tex: true
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(here)
+library(tidyverse)
+library(survival)
+library(survminer)
+library(glmnet)
+library(caret)
+library(randomForestSRC)
+library(xgboost)
+```
+
+```{r load-scripts, include=FALSE}
+suppressMessages({
+  source(here("scripts", "01_data_loading_cleaning.R"))
+  source(here("scripts", "02_exploratory_data_analysis.R"))
+  source(here("scripts", "03_statistical_modeling.R"))
+  source(here("scripts", "04_machine_learning_rf_modeling.R"))
+  source(here("scripts", "05_ml_feature_log_xgb_modeling.R"))
+  source(here("scripts", "06_survival_forest_coxnet.R"))
+  source(here("scripts", "07_results_visualisation_interpretation.R"))
+})
+```
+
+# 1. Introduction
+This project explores prognostic modeling for patients with Head and Neck Squamous Cell Carcinoma (HNSCC) using clinical data from The Cancer Genome Atlas (TCGA). We aim to identify clinical predictors of survival and compare traditional survival analysis with modern machine learning methods.
+
+### Research Question:
+_What clinical factors are associated with overall survival in HNSCC, and how accurately can survival outcomes be predicted using statistical and machine learning models?_
+  
+# 2. Data and Preprocessing
+We used publicly available TCGA HNSCC data accessed from cBioPortal. Key variables include patient age, sex, tumor stage, and primary tumor site.
+
+```{r}
+clinical_data <- readRDS(here("data", "cleaned_clinical_data.rds"))
+summary(clinical_data)
+```
+
+# 3. Exploratory Data Analysis
+#### Age distribution
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "eda", "eda_age_distribution.png"))
+```
+
+#### Gender distribution
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "eda", "eda_gender_distribution.png"))
+```
+
+#### Tumor stage counts
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "eda", "eda_stage_distribution.png"))
+```
+
+#### Survival time distribution 
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "eda", "eda_os_distribution.png"))
+```
+
+
+# 4. Traditional Survival Modeling
+
+## Kaplan-Meier Survival Estimates by Stage
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "survival", "km_survival_by_stage.png"))
+```
+
+## Kaplan-Meier Survival Estimates by Gender
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "survival", "km_survival_by_gender.png"))
+```
+
+## Cox Proportional Hazards Model
+```{r}
+summary(cox_model)
+```
+
+# 5. Machine Learning Models (Binary Classification)
+We defined a binary outcome: survival beyond 24 months.
+
+## Random Forest
+```{r}
+print(rf_model_cv)
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "ml", "rf_cv_roc_curve.png"))
+```
+
+## Logistic Regression with L1 Regularization
+```{r}
+print(logistic_model)
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "ml", "logistic_roc_curve.png"))
+```
+
+## XGBoost
+```{r}
+print(xgb_model)
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "ml", "xgb_roc_curve.png"))
+```
+
+# 6. Time-to-Event Machine Learning Models
+## Random Survival Forest (RSF)
+```{r}
+print(rsf_model)
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "rsf", "rsf_variable_importance.png"))
+```
+
+## Penalized Cox (CoxNet)
+```{r, out.width="80%"}
+print(coef(cv_cox, s = "lambda.min"))
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "survival", "coxnet_variable_importance.png"))
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "survival", "coxnet_cv_curve.png"))
+```
+
+# 7. Subgroup Survival Estimates
+```{r, out.width="80%"}
+subgroup_table <- read_csv(here("outputs", "tables","coxnet_subgroup_medians.csv"))
+knitr::kable(subgroup_table, caption = "Median Survival by Subgroup (CoxNet)")
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "survival","coxnet_predicted_survival_age.png"))
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "survival", "coxnet_predicted_survival_gender.png"))
+```
+
+# 8. Model Performance Comparison
+```{r}
+model_results <- read_csv(here("outputs", "tables", "final_model_performance_summary.csv"))
+```
+
+```{r, out.width="80%"}
+knitr::include_graphics(here("outputs", "plots", "final_model_comparison_plot.png"))
+```
+
+# 9. Interpretation
+- The best performing model was Random Survival Forest (C-index = 0.74), suggesting strong potential for modeling censored survival outcomes using ensemble methods.
+- Penalized Cox regression (C-index = 0.639) also showed good discrimination, with regularization helping to focus on relevant predictors.
+- Classification-based ML models (RF, XGBoost, logistic) showed lower AUCs, potentially due to class imbalance and loss of time-to-event granularity.
+
+# 10. Conclusion
+This project demonstrates that:
+
+- Time-to-event models are more appropriate than binary classifiers in survival analysis contexts.
+- RSF models are effective for clinical survival prediction.
+- Regularized Cox models like CoxNet strike a balance between performance and interpretability.
+- The analysis pipeline here provides a template for applying survival ML methods to other clinical or public health prediction tasks.
+
+---
