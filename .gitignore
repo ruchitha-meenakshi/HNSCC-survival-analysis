@@ -1,4 +1,12 @@
-.Rproj.user
+# RStudio junk
+.Rproj.user/
 .Rhistory
 .RData
 .Ruserdata
+.Rprofile
+
+# macOS junk
+.DS_Store
+
+# renv (exclude heavy cache)
+renv/cache/
