@@ -55,15 +55,50 @@ roc_obj <- roc(rf_model_cv$pred$obs, rf_model_cv$pred$Survived)
 auc_val <- auc(roc_obj)
 cat("Cross-Validated AUC:", auc_val, "\n")
 
-# --- Step 7: Plot ROC Curve
-png(here("outputs", "plots", "ml", "rf_cv_roc_curve.png"), width = 800, height = 600)
-plot(roc_obj, col = "darkblue", main = "Cross-Validated ROC Curve - Random Forest")
-dev.off()
+# # --- Step 7: Plot ROC Curve
+# png(here("outputs", "plots", "ml", "rf_cv_roc_curve.png"), width = 800, height = 600)
+# plot(roc_obj, col = "darkblue", main = "Cross-Validated ROC Curve - Random Forest")
+# dev.off()
+# 
+# # --- Step 8: Variable Importance Plot ---
+# png(here("outputs", "plots", "ml", "rf_cv_variable_importance.png"), width = 800, height = 600)
+# varImpPlot(rf_model_cv$finalModel, main = "Variable Importance - Random Forest")
+# dev.off()
 
-# --- Step 8: Variable Importance Plot ---
-png(here("outputs", "plots", "ml", "rf_cv_variable_importance.png"), width = 800, height = 600)
-varImpPlot(rf_model_cv$finalModel, main = "Variable Importance - Random Forest")
-dev.off()
+# --- Step 7: Plot ROC Curve (ggplot style) ---
+# Extract data for plotting
+roc_dat <- data.frame(
+  Specificity = roc_obj$specificities,
+  Sensitivity = roc_obj$sensitivities
+)
+
+p_roc <- ggplot(roc_dat, aes(x = 1 - Specificity, y = Sensitivity)) +
+  geom_line(color = "#00468BFF", size = 1.2) +
+  geom_abline(linetype = "dashed", color = "grey") +
+  labs(title = "ROC Curve: Random Forest",
+       subtitle = paste("Cross-Validated AUC =", round(auc_val, 3)),
+       x = "1 - Specificity (False Positive Rate)",
+       y = "Sensitivity (True Positive Rate)") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+ggsave(here("outputs", "plots", "ml", "rf_cv_roc_curve.png"), p_roc, width = 8, height = 6)
+
+# --- Step 8: Variable Importance (Lollipop Chart) ---
+# Extract importance
+imp_df <- varImp(rf_model_cv)$importance %>% 
+  as.data.frame() %>%
+  rownames_to_column("Feature") %>%
+  arrange(desc(Overall))
+
+p_imp <- ggplot(imp_df, aes(x = reorder(Feature, Overall), y = Overall)) +
+  geom_point(size = 4, color = "#00468BFF") +
+  geom_segment(aes(x = Feature, xend = Feature, y = 0, yend = Overall), color = "#00468BFF") +
+  coord_flip() +
+  labs(title = "Feature Importance (Random Forest)", x = "", y = "Importance Score") +
+  theme_minimal()
+
+ggsave(here("outputs", "plots", "ml", "rf_cv_variable_importance.png"), p_imp, width = 8, height = 6)
 
 # --- Step 9: Save prepared ML dataset ---
 save(ml_data, file = here("data", "ml_data.RData"))

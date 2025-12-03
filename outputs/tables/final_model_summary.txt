@@ -8,8 +8,6 @@ Random Survival Forest (RSF): Concordance = 0.740
 Penalized Cox (CoxNet): Concordance = 0.639
 
 INTERPRETATION:
-Traditional classifiers showed modest performance, likely limited by the clinical variables available.
-Random Survival Forests significantly outperformed other models (C-index = 0.74), 
-demonstrating the value of native survival modeling for censored data.
-Penalized Cox regression (CoxNet) also showed good performance (C-index = 0.639), 
-reinforcing the value of regularization and stage-based risk stratification.
+1. Binary classifiers (AUC ~0.55) performed poorly, likely due to class imbalance and loss of time-to-event information.
+2. Random Survival Forests (C-index = 0.74) significantly outperformed all other models.
+3. This confirms that modeling censorship is critical for accurate HNSCC prognosis.

@@ -41,17 +41,33 @@ rsf_cindex <- survConcordance(surv_obj ~ rsf_preds)$concordance
 cat("RSF Concordance Index:", round(rsf_cindex, 3), "\n")
 
 
-# Variable importance plot
-png(here("outputs", "plots", "rsf", "rsf_variable_importance.png"), width = 800, height = 600)
-# Extract variable importance
-importance_vals <- rsf_model$importance
-# Sort and plot
-barplot(sort(importance_vals, decreasing = TRUE),
-        main = "Variable Importance - RSF",
-        col = "skyblue",
-        las = 2)
-dev.off()
+# --- Improved RSF Variable Importance Plot (Professional Lollipop) ---
+# Extract VIMP (Variable Importance)
+vimp_obj <- vimp(rsf_model)
+imp_df <- data.frame(
+  Variable = names(vimp_obj$importance),
+  Importance = vimp_obj$importance
+) %>%
+  arrange(desc(Importance))
 
+# Create Lollipop Chart
+p_rsf_imp <- ggplot(imp_df, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_point(size = 5, color = "#2c3e50") + # Dark Slate Blue points
+  geom_segment(aes(x = Variable, xend = Variable, y = 0, yend = Importance), color = "#95a5a6", size = 1) + # Grey stems
+  coord_flip() +
+  labs(title = "Variable Importance: Random Survival Forest", 
+       subtitle = "Key predictors of patient survival (VIMP Score)",
+       x = "", y = "Importance Score") +
+  theme_classic() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0, color = "#2c3e50"),
+    plot.subtitle = element_text(size = 11, color = "grey40", hjust = 0),
+    axis.text = element_text(size = 11, color = "black"),
+    panel.grid.major.x = element_line(color = "grey90", size = 0.5) # Vertical grid lines for easier reading
+  )
+
+# Save high-res image
+ggsave(here("outputs", "plots", "rsf", "rsf_variable_importance.png"), p_rsf_imp, width = 8, height = 6, dpi = 300)
 # --- Step 2: Penalized Cox Regression (CoxNet) ---
 # Prepare model matrix
 x <- model.matrix(~ age + gender + stage + primary_site, data = surv_data)[, -1]
